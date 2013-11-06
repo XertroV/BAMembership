@@ -1,17 +1,29 @@
 #!/usr/bin/python
 
+## CONFIG
+
+logfilename = './signupLog.log'
+# replace this string with your own
+pubKey = 'xpub661MyMwAqRbcEw72MGUKw2Yv1bnAg64pad8MhMuFHDUorGBTbCBk2GTRwLjxjbLkDfHFPwtDRrzJAmQdgoU7ZYEjEb3bs2BysnXKCaJa8h7'
+
+## IMPORTS
+
 from pycoin.wallet import Wallet
+pubWallet = Wallet.from_wallet_key(pubKey)
 
 from flask import Flask
+from flask import request
 app = Flask(__name__)
 
 import logging
-log_handler = logging.FileHandler('./signupLog.log')
+log_handler = logging.FileHandler(logfilename)
 log_handler.setLevel(logging.WARNING)
 app.logger.addHandler(log_handler)
 
 from Crypto.Hash import SHA256
 
+# DEBUG STUFF FOR PAYMENTS
+"""
 ## Payment stuff, should only record public key
 
 #### DEBUG START ####
@@ -24,57 +36,16 @@ pubKey = 'xpub661MyMwAqRbcEw72MGUKw2Yv1bnAg64pad8MhMuFHDUorGBTbCBk2GTRwLjxjbLkDf
 #pubKey = privWallet.wallet_key(as_private=False)
 pubWallet = Wallet.from_wallet_key(pubKey)
 #### DEBUG END ####
-
-pubKey = 'xpub661MyMwAqRbcEw72MGUKw2Yv1bnAg64pad8MhMuFHDUorGBTbCBk2GTRwLjxjbLkDfHFPwtDRrzJAmQdgoU7ZYEjEb3bs2BysnXKCaJa8h7'
-pubWallet = Wallet.from_wallet_key(pubKey)
+"""
 
 # this is used in the redis db
 orgName = 'bitcoinAustralia'
 
-def getAddressFromRoot(index):
-	global pubWallet
-	address = pubWallet.subkey_for_path(index).bitcoin_address()
-	return address
-	
-def getPaymentAddress(memberid):
-	return getAddressFromRoot('1/'+str(memberid))
-	
-def sha256Hash(plaintext):
-	h = SHA256.new()
-	h.update(plaintext)
-	return h.digest()
+## HTML
 
-class Database:
-	def __init__(self):
-		global orgName
-		import redis
-		self.r = redis.StrictRedis(host='localhost', port=6379, db=0)
-		self.orgName = orgName
-	def getNewMemberNumber(self): # increment usercounter and get new member number
-		return self.r.incr('bitcoinAustralia:lastmemberid')
-	def setUserDetails(self,details): # details is a dict of keyvalue pairs to set - keep at arms length from db
-		'''details should be a dict with keys 'resAddress','name','email','id' '''
-		memberid = int(details['id'])
-		resAddress = details['resAddress']
-		name = details['name']
-		email = details['email']
-		
-		self.r.set('%s:members:%d:resAddress' % (self.orgName, memberid), resAddress)
-		self.r.set('%s:members:%d:name' % (self.orgName, memberid), name)
-		self.r.set('%s:members:%d:email' % (self.orgName, memberid), email)
-		self.r.set('%s:members:%d:paid' % (self.orgName, memberid), 'false')
-		self.r.set('%s:members:%d:paymentAddress' % (self.orgName, memberid), getPaymentAddress(memberid))
-		
-		self.r.sadd('%s:uncertainMembersSet' % self.orgName, memberid)
-		self.r.set('%s:members:emailHashToId:%s' % (self.orgName, sha256Hash(email)), memberid)
-	def getIndividualFee(self):
-		#fee = self.r.get('%s
-		pass
-
-@app.route("/stage1")
-def stage1():
-	html = """
-	<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+form_html = """
+	<!--<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>-->
+	<script src="http://127.0.0.1/jquery-1.10.1.min.js"></script>
 	<div id="memberForm">
 		<form role="form">
 			<div class="form-group">
@@ -105,6 +76,15 @@ def stage1():
 		
 		<p>Once you've sent payment there is nothing more you are required to do. Your membership will be manually processed and you will be emailed when it is complete.</p>
 		<p>Kind Regards,<br>Bitcoin Australia</p>
+		<p>
+			<button type="button" id="paymentGoBack">Back</button>
+		</p>
+	</div>
+	<div id="memberError" style="display:none;">
+		<h3 class="error">Error: <span id="errorReport"></span></h3>
+		<p>
+			<button type="button" id="errorGoBack">Back</button>
+		</p>
 	</div>
 	<script type="text/javascript">
 	$("#memberSubmit").click(function(){
@@ -114,19 +94,36 @@ def stage1():
 			"success":function(data, z, y){
 				console.log(data);
 				paymentDetails = JSON.parse(data);
-				$("#paymentAmount").html(paymentDetails["amount"]);
-				$("#addressToPay").html(paymentDetails["address"]);
-				$("#bitcoinURI").attr("href",paymentDetails["uri"]);
-				$("#bitcoinQR").attr("src","https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl="+encodeURIComponent(paymentDetails["uri"]));
-				$("#loadingPayment").slideUp(200);
-				$("#memberPaymentAddress").slideDown(200);
+				if(paymentDetails["error"] == "none"){
+					$("#paymentAmount").html(paymentDetails["amount"]);
+					$("#addressToPay").html(paymentDetails["address"]);
+					$("#bitcoinURI").attr("href",paymentDetails["uri"]);
+					$("#bitcoinQR").attr("src","https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl="+encodeURIComponent(paymentDetails["uri"]));
+					$("#loadingPayment").slideUp(200);
+					$("#memberPaymentAddress").slideDown(200);
+				}else{
+					$("#errorReport").html(paymentDetails["error"]);
+					$("#loadingPayment").slideUp(200);
+					$("#memberError").slideDown(200);
+				}
 			},
 			"type":"POST",
 			"url":"stage2",
 			"data":{
-				"test":"1",
+				"memberEmail":$("#memberEmail").val(),
+				"memberName":$("#memberName").val(),
+				"memberAddress":$("#memberAddress").val(),
+				"memberAllowed":$("#memberAllowed").is(":checked")
 			},
 		});
+	});
+	$("#errorGoBack").click(function(){
+		$("#memberError").slideUp(200);
+		$("#memberForm").slideDown(200);
+	});
+	$("#paymentGoBack").click(function(){
+		$("#memberPaymentAddress").slideUp(200);
+		$("#memberForm").slideDown(200);
 	});
 	
 	loadingAnimCounter = 0;
@@ -140,24 +137,92 @@ def stage1():
 	loadingAnimation();
 	</script>
 	"""
-	return html
+	
+## FUNCTIONS
+
+def getAddressFromRoot(index):
+	global pubWallet
+	address = pubWallet.subkey_for_path(index).bitcoin_address()
+	return address
+	
+def getPaymentAddress(memberid):
+	return getAddressFromRoot('1/'+str(memberid))
+	
+def sha256Hash(plaintext):
+	h = SHA256.new()
+	h.update(plaintext)
+	return h.digest()
+	
+## CLASSES
+
+class Database:
+	def __init__(self):
+		global orgName
+		import redis
+		self.r = redis.StrictRedis(host='localhost', port=6379, db=0)
+		self.orgName = orgName
+	def checkEmailExists(self, email):
+		return self.r.exists('%s:members:emailHashToId:%s' % (self.orgName, sha256Hash(email)))
+	def getNewMemberNumber(self): # increment usercounter and get new member number
+		return self.r.incr('bitcoinAustralia:lastmemberid')
+	def setUserDetails(self,details): # details is a dict of keyvalue pairs to set - keep at arms length from db
+		'''details should be a dict with keys 'resAddress','name','email','id' '''
+		memberid = int(details['id'])
+		resAddress = details['resAddress']
+		name = details['name']
+		email = details['email']
+		
+		self.r.set('%s:members:%d:resAddress' % (self.orgName, memberid), resAddress)
+		self.r.set('%s:members:%d:name' % (self.orgName, memberid), name)
+		self.r.set('%s:members:%d:email' % (self.orgName, memberid), email)
+		self.r.set('%s:members:%d:paid' % (self.orgName, memberid), 'false')
+		self.r.set('%s:members:%d:paymentAddress' % (self.orgName, memberid), getPaymentAddress(memberid))
+		
+		self.r.sadd('%s:uncertainMembersSet' % self.orgName, memberid)
+		self.r.set('%s:members:emailHashToId:%s' % (self.orgName, sha256Hash(email)), memberid)
+	def getIndividualFeeYearly(self):
+		fee = self.r.get('%s:membership:feeIndividualYearly' % self.orgName)
+		return '0.0012345'
+	def setIndividualFeeYearly(self, fee):
+		fee = str(fee)
+		return self.r.set('%s:membership:feeIndividualYearly' % self.orgName, fee)
+
+## ROUTES (PAGES)
+
+@app.route("/stage1")
+def stage1():
+	global form_html
+	return form_html
 	
 @app.route("/stage2", methods=["POST"])
 def stage2():
-	#assert request.method == "POST"
+	try:	
+		email = request.form['memberEmail']
+		name = request.form['memberName']
+		resAddress = request.form['memberAddress']
+		allowed = request.form['memberAllowed']
+	except:
+		return '{"error":"Submitted fields incorrect"}'
+	if '' in [email, name, resAddress]:
+		return '{"error":"One of name, email or address is blank"}'
+	if db.checkEmailExists(email):
+		return '{"error":"Email address already exists"}'
+	if allowed != 'true':
+		return '{"error":"You must be an Australian Resident or Citizen to join"}'
 	memberid = db.getNewMemberNumber()
 	db.setUserDetails({
 		'id':memberid,
-		'resAddress':request.form['memberAddress'],
-		'name':request.form['memberName'],
-		'email':request.form['memberEmail']
+		'resAddress':resAddress,
+		'name':name,
+		'email':email
 	})
 	address = getPaymentAddress(memberid)
-	amount = db.getIndividualFee()
+	amount = db.getIndividualFeeYearly()
 	comment = "Bitcoin%20Australia%20Membership"
 	uri = "bitcoin:%s?amount=%s&label=%s" % (address, amount, comment)
-	return '{"address":"%s","amount":"%s","uri":"%s"}' % (address, amount, uri)
+	return '{"address":"%s","amount":"%s","uri":"%s","error":"none"}' % (address, amount, uri)
 		
+## MAIN - RUN APP
 
 if __name__ == "__main__":
 	global db
