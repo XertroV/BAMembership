@@ -43,6 +43,7 @@ orgName = 'bitcoinAustralia'
 
 ## HTML
 
+# this will eventually be a customizable template
 form_html = """
 	<!--<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>-->
 	<script src="http://127.0.0.1/jquery-1.10.1.min.js"></script>
@@ -76,6 +77,7 @@ form_html = """
 		
 		<p>Once you've sent payment there is nothing more you are required to do. Your membership will be manually processed and you will be emailed when it is complete.</p>
 		<p>Kind Regards,<br>Bitcoin Australia</p>
+		<!--- THIS IS DEBUG STUFF -->
 		<p>
 			<button type="button" id="paymentGoBack">Back</button>
 		</p>
@@ -108,7 +110,7 @@ form_html = """
 				}
 			},
 			"type":"POST",
-			"url":"stage2",
+			"url":"membership",
 			"data":{
 				"memberEmail":$("#memberEmail").val(),
 				"memberName":$("#memberName").val(),
@@ -189,39 +191,38 @@ class Database:
 
 ## ROUTES (PAGES)
 
-@app.route("/stage1")
+@app.route("/membership", methods=["POST","GET"])
 def stage1():
-	global form_html
-	return form_html
-	
-@app.route("/stage2", methods=["POST"])
-def stage2():
-	try:	
-		email = request.form['memberEmail']
-		name = request.form['memberName']
-		resAddress = request.form['memberAddress']
-		allowed = request.form['memberAllowed']
-	except:
-		return '{"error":"Submitted fields incorrect"}'
-	if '' in [email, name, resAddress]:
-		return '{"error":"One of name, email or address is blank"}'
-	if db.checkEmailExists(email):
-		return '{"error":"Email address already exists"}'
-	if allowed != 'true':
-		return '{"error":"You must be an Australian Resident or Citizen to join"}'
-	memberid = db.getNewMemberNumber()
-	db.setUserDetails({
-		'id':memberid,
-		'resAddress':resAddress,
-		'name':name,
-		'email':email
-	})
-	address = getPaymentAddress(memberid)
-	amount = db.getIndividualFeeYearly()
-	comment = "Bitcoin%20Australia%20Membership"
-	uri = "bitcoin:%s?amount=%s&label=%s" % (address, amount, comment)
-	return '{"address":"%s","amount":"%s","uri":"%s","error":"none"}' % (address, amount, uri)
-		
+	if request.method == 'GET':
+		global form_html
+		return form_html
+	elif request.method == 'POST':
+		try:	
+			email = request.form['memberEmail']
+			name = request.form['memberName']
+			resAddress = request.form['memberAddress']
+			allowed = request.form['memberAllowed']
+		except:
+			return '{"error":"Submitted fields incorrect"}'
+		if '' in [email, name, resAddress]:
+			return '{"error":"One of name, email or address is blank"}'
+		if db.checkEmailExists(email):
+			return '{"error":"Email address already exists"}'
+		if allowed != 'true':
+			return '{"error":"You must be an Australian Resident or Citizen to join"}'
+		memberid = db.getNewMemberNumber()
+		db.setUserDetails({
+			'id':memberid,
+			'resAddress':resAddress,
+			'name':name,
+			'email':email
+		})
+		address = getPaymentAddress(memberid)
+		amount = db.getIndividualFeeYearly()
+		comment = "Bitcoin%20Australia%20Membership"
+		uri = "bitcoin:%s?amount=%s&label=%s" % (address, amount, comment)
+		return '{"address":"%s","amount":"%s","uri":"%s","error":"none"}' % (address, amount, uri)
+
 ## MAIN - RUN APP
 
 if __name__ == "__main__":
