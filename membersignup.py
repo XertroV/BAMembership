@@ -218,7 +218,7 @@ class Database:
 ## ROUTES (PAGES)
 
 @app.route("/membership", methods=["POST","GET"])
-def stage1():
+def membership():
 	if request.method == 'GET':
 		global form_html
 		return form_html
@@ -250,6 +250,16 @@ def stage1():
 		comment = "Bitcoin%20Australia%20Membership"
 		uri = "bitcoin:%s?amount=%s&label=%s" % (address, amount, comment)
 		return '{"address":"%s","amount":"%s","uri":"%s","error":"none"}' % (address, amount, uri)
+		
+@app.route("/memberlist")
+def memberlist():
+	maxid = int(db.r.get('bitcoinAustralia:lastmemberid'))
+	ret = ''
+	for i in range(maxid):
+		for stuff in ['name','email','paymentAddress']:
+			ret += db.r.get('bitcoinAustralia:members:%d:%s' % (i+1, stuff)) + ' | '
+		ret += '<br>'
+	return ret	
 
 ## MAIN - RUN APP
 
