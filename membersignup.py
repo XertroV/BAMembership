@@ -46,47 +46,72 @@ orgName = 'bitcoinAustralia'
 # this will eventually be a customizable template
 form_html = """
 	<!--<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>-->
-	<script src="http://127.0.0.1/jquery-1.10.1.min.js"></script>
-	<div id="memberForm">
-		<form role="form">
-			<div class="form-group">
-				<label for="memberName">Name</label>
-				<input type="text" class="form-control" id="memberName" name="memberName">
-			</div>
-			<div class="form-group">
-				<label for="memberEmail">Email Address</label>
-				<input type="email" class="form-control" id="memberEmail" name="memberEmail">
-			</div>
-			<div class="form-group">
-				<label for="memberAddress">Residential Address</label>
-				<input type="textbox" class="form-control" id="memberAddress" name="memberAddress">
-			</div>
-			<div class="checkbox">
-				<label><input type="checkbox" id="memberAllowed" name="memberAllowed"> I am a citizen or permenant resident of Australia, OR, an incorporated or registered legal entitiy according to the relevant Australian state or federal law.</label>
-			</div>
-			<button type="button" id="memberSubmit">Submit and get payment address</button>
-		</form>
+	<!--<script src="http://127.0.0.1/jquery-1.10.1.min.js"></script>-->
+	
+						<div class="row">
+							<div class="12u">
+							</div>
+						</div>
+	<div id="memberForm" class="row">
+		<div class="12u">
+			<form role="form" id="membershipForm">
+				<div class="row half">
+					<div class="6u">
+						<input type="text" class="form-control" id="memberName" name="memberName" placeholder="Name">
+					</div>
+					<div class="6u">
+						<input type="text" class="form-control" id="memberEmail" name="memberEmail" placeholder="Email">
+					</div>
+				</div>
+				<div class="row half">
+					<div class="12u">
+						<textarea rows="5" maxlength="512" id="memberAddress" name="memberAddress" placeholder="Residential Address"></textarea>
+					</div>
+				</div>
+				<div class="row half">
+					<div class="12u">
+						<label><input type="checkbox" id="memberAllowed" name="memberAllowed"> I am a citizen or permenant resident of Australia, OR, an incorporated or registered legal entitiy according to the relevant Australian state or federal law.</label>
+					</div>
+				</div>
+				<div class="row">
+					<div class="12u">
+						<a class="button" id="memberSubmit">Get Payment Address</a>
+						<a class="button button-alt form-button-reset" onclick="$('#membershipForm')[0].reset();">Clear Form</a>
+					</div>
+				</div>
+			</form>
+		</div>
 	</div>
-	<div id="loadingPayment" style="display:none;">
-		<h3>Loading<span id="loadingAnimation"></span></h3>
+	<div class="row" id="loadingPayment" style="display:none;">
+		<div class="12u">
+			<h3>Loading<span id="loadingAnimation"></span></h3>
+		</div>
 	</div>
-	<div id="memberPaymentAddress" style="display:none;">
-		<p>Please pay <span id="paymentAmount"></span> to:</p>
-		<h3 id="addressToPay"></h3>
-		<a id="bitcoinURI" src=""><img id="bitcoinQR" src=""></a>
-		
-		<p>Once you've sent payment there is nothing more you are required to do. Your membership will be manually processed and you will be emailed when it is complete.</p>
-		<p>Kind Regards,<br>Bitcoin Australia</p>
-		<!--- THIS IS DEBUG STUFF -->
-		<p>
-			<button type="button" id="paymentGoBack">Back</button>
-		</p>
+	<div class="row" id="memberPaymentAddress" style="display:none;">
+		<div class="12u">
+			<p>Please pay <span id="paymentAmount"></span> to:</p>
+			<h3 id="addressToPay"></h3>
+			<a id="bitcoinURI" src=""><img id="bitcoinQR" src=""></a>
+			
+			<p>Once you've sent payment there is nothing more you are required to do. Your membership will be manually processed and you will be emailed when it is complete.</p>
+			<p>Kind Regards,<br>Bitcoin Australia</p>
+			<!-- THIS IS DEBUG STUFF -->
+			<!-- <div class="row">
+				<div class="12u">
+					<a class="button" id="paymentGoBack">Back</a>
+				</div>
+			</div> -->
+		</div>
 	</div>
-	<div id="memberError" style="display:none;">
-		<h3 class="error">Error: <span id="errorReport"></span></h3>
-		<p>
-			<button type="button" id="errorGoBack">Back</button>
-		</p>
+	<div class="row" id="memberError" style="display:none;">
+		<div class="12u">
+			<h3 class="error">Error: <span id="errorReport"></span></h3>
+			<div class="row">
+				<div class="12u">
+					<a class="button" id="errorGoBack">Back</a>
+				</div>
+			</div>
+		</div>
 	</div>
 	<script type="text/javascript">
 	$("#memberSubmit").click(function(){
@@ -184,7 +209,7 @@ class Database:
 		self.r.set('%s:members:emailHashToId:%s' % (self.orgName, sha256Hash(email)), memberid)
 	def getIndividualFeeYearly(self):
 		fee = self.r.get('%s:membership:feeIndividualYearly' % self.orgName)
-		return '0.0012345'
+		return fee
 	def setIndividualFeeYearly(self, fee):
 		fee = str(fee)
 		return self.r.set('%s:membership:feeIndividualYearly' % self.orgName, fee)
@@ -210,6 +235,8 @@ def stage1():
 			return '{"error":"Email address already exists"}'
 		if allowed != 'true':
 			return '{"error":"You must be an Australian Resident or Citizen to join"}'
+		if max([len(resAddress), len(email), len(name)]) > 512:
+			return '{"error":"All fields must be less than 512 characters long."}'
 		memberid = db.getNewMemberNumber()
 		db.setUserDetails({
 			'id':memberid,
