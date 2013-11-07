@@ -136,7 +136,7 @@ form_html = """
 				}
 			},
 			"type":"POST",
-			"url":"membership",
+			"url":"/membership",
 			"data":{
 				"memberEmail":$("#memberEmail").val(),
 				"memberName":$("#memberName").val(),
