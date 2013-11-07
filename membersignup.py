@@ -52,7 +52,7 @@ form_html = """
 							<div class="12u">
 							</div>
 						</div>
-	<div id="memberForm" class="row">
+	<div id="memberForm" class="row half">
 		<div class="12u">
 			<form role="form" id="membershipForm">
 				<div class="row half">
@@ -82,19 +82,20 @@ form_html = """
 			</form>
 		</div>
 	</div>
-	<div class="row" id="loadingPayment" style="display:none;">
+	<div class="row half" id="loadingPayment" style="display:none;">
 		<div class="12u">
 			<h3>Loading<span id="loadingAnimation"></span></h3>
 		</div>
 	</div>
-	<div class="row" id="memberPaymentAddress" style="display:none;">
+	<div class="row half" id="memberPaymentAddress" style="display:none;">
 		<div class="12u">
-			<p>Please pay <span id="paymentAmount"></span> to:</p>
+			Please pay <span id="paymentAmount"></span> to:
 			<h3 id="addressToPay"></h3>
-			<a id="bitcoinURI" src=""><img id="bitcoinQR" src=""></a>
+			<a id="bitcoinURI" href=""><img id="bitcoinQR" src="" alt="QR code and bitcoin: link" width="300" height="300"></a>
 			
-			<p>Once you've sent payment there is nothing more you are required to do. Your membership will be manually processed and you will be emailed when it is complete.</p>
-			<p>Kind Regards,<br>Bitcoin Australia</p>
+			<p>Once you've sent payment there is nothing more you are required to do. Your membership will be manually processed and you will be emailed when it is complete.
+			<br><br>
+			Kind Regards,<br>Bitcoin Australia</p>
 			<!-- THIS IS DEBUG STUFF -->
 			<!-- <div class="row">
 				<div class="12u">
@@ -103,7 +104,7 @@ form_html = """
 			</div> -->
 		</div>
 	</div>
-	<div class="row" id="memberError" style="display:none;">
+	<div class="row half" id="memberError" style="display:none;">
 		<div class="12u">
 			<h3 class="error">Error: <span id="errorReport"></span></h3>
 			<div class="row">
