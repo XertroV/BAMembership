@@ -1,0 +1,18 @@
+<something> means that an example of something is substituted
+<a> -> (b) means that an example of a is substituted and it returns an example of b
+
+orgName
+|-memberCounter
+|-members
+||-emailHashToID
+|||-<hash> -> (members:id)
+||-<id>
+|||-name
+|||-email
+|||-paymentAddress
+|||-paymentCounter
+|||-payments
+||||-<id>
+|||||-amount
+|||||-description
+|||||-date
