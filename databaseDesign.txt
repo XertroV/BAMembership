@@ -1,5 +1,6 @@
 <something> means that an example of something is substituted
 <a> -> (b) means that an example of a is substituted and it returns an example of b
+all time and durations will be measured in seconds
 
 orgName
 |-memberCounter
@@ -7,8 +8,12 @@ orgName
 ||-emailHashToID
 |||-<hash> -> (members:id)
 ||-<id>
+|||-active -> (true/false)
+|||-activeFrom -> (time)
+|||-activeFor -> (duration)
 |||-name
 |||-email
+|||-founding -> (true/false)
 |||-paymentAddress
 |||-paymentCounter
 |||-payments
@@ -16,3 +21,11 @@ orgName
 |||||-amount
 |||||-description
 |||||-date
+|-membership
+||-tierCounter
+||-tiers
+|||-<id>
+||||-shortName
+||||-description
+||||-cost
+||||-duration
