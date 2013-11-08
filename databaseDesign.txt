@@ -3,8 +3,9 @@
 all time and durations will be measured in seconds
 
 orgName
-|-memberCounter
 |-members
+||-counter
+||-activeMemberList
 ||-emailHashToID
 |||-<hash> -> (members:id)
 ||-<id>
@@ -17,15 +18,22 @@ orgName
 |||-paymentAddress
 |||-paymentCounter
 |||-payments
+||||-counter
 ||||-<id>
 |||||-amount
 |||||-description
 |||||-date
-|-membership
-||-tierCounter
-||-tiers
-|||-<id>
-||||-shortName
-||||-description
-||||-cost
-||||-duration
+|||||-paid
+|||||-txidlist
+|-tiers
+||-counter
+||-shortNameToID
+|||-shortName -> (id)
+||-shortNameList
+||-<id>
+|||-shortName
+|||-description
+|||-cost
+|||-duration
+|||-founding -> (true/false)
+|||-suggestedSize
