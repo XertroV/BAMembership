@@ -10,6 +10,19 @@
 		<div class="12u">
 			<form role="form" id="membershipForm">
 				<div class="row half">
+					<select>
+						{% for tier in tiers %}
+							<option value="{{ tier[0] }} | ">{{ tier[1] }} | 
+								{{ (tier[4]|int/24/60/60)|int }} days | 
+								{{ tier[3] }} BTC
+							</option>
+						{% endfor %}
+					</select>
+					{% for tier in tiers %}
+						<p>{{ tier }}</p>
+					{% endfor %}
+				</div>
+				<div class="row half">
 					<div class="6u">
 						<input type="text" class="form-control" id="memberName" name="memberName" placeholder="Name">
 					</div>

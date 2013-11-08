@@ -15,6 +15,7 @@ orgName
 |||-name
 |||-email
 |||-founding -> (true/false)
+|||-comments -> (list of comments on accounts)
 |||-paymentAddress
 |||-paymentCounter
 |||-payments
@@ -22,7 +23,8 @@ orgName
 ||||-<id>
 |||||-amount
 |||||-description
-|||||-date
+|||||-daterequested
+|||||-daterecieved
 |||||-paid
 |||||-txidlist
 |-tiers
@@ -37,3 +39,4 @@ orgName
 |||-duration
 |||-founding -> (true/false)
 |||-suggestedSize
+|||-active

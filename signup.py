@@ -92,15 +92,29 @@ class Database:
 		prefix += ':%s' % newPaymentID
 		self.r.set('%s:amount' % prefix, amount)
 		self.r.set('%s:description' % prefix, description)
-		self.r.set('%s:date' % prefix, date)
+		self.r.set('%s:daterequested' % prefix, date)
 		self.r.set('%s:paid' % prefix, 'false')
+	def listTiers(self):
+		prefix = '%s:tiers' % self.orgName
+		numTiers = self.r.get('%s:counter' % prefix)
+		if numTiers == None:
+			return []
+		numTiers = int(numTiers)
+		toRet = []
+		for i in range(numTiers):
+			toAdd = [i+1]
+			for f in ['shortName','description','cost','duration','suggestedSize','active']:
+				toAdd += [self.r.get('%s:%d:%s' % (prefix, i+1, f))]
+			toRet += [toAdd]
+		return toRet
 
 ## ROUTES (PAGES)
 
 @app.route("/membership", methods=["POST","GET"])
 def membership():
 	if request.method == 'GET':
-		return render_template('form.html')
+		tiers = db.listTiers()
+		return render_template('form.html',tiers=tiers)
 	elif request.method == 'POST':
 		try:	
 			email = request.form['memberEmail']

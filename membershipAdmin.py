@@ -15,9 +15,9 @@ printRaw = False
 
 # first entry in list should be the short human identifier (like a name)
 dbmap = {
-	"tiers":['shortName','description','cost','duration','founding','suggestedSize'],
+	"tiers":['shortName','description','cost','duration','founding','suggestedSize','active'],
 	"members":['name','active','activeFrom','activeFor','email','founding','paymentAddress'],
-	"payments":['description','amount','date','paid']
+	"payments":['description','amount','daterequested','daterecieved','paid'],
 }
 
 ## FUNCITONS - MAP TO COMMANDS
@@ -36,6 +36,16 @@ def confirmWrite(loc, val):
 			return False
 	return True
 	
+def getGeneric(itemType,itemPath):
+	lastItem = r.get('%s:counter' % itemPath)
+	lastItem = int(lastItem)
+	toRet = [['id']+dbmap[itemType]]
+	for i in range(lastItem):
+		toAdd = [i+1]
+		for info in dbmap[itemType]:
+			toAdd += [r.get('%s:%d:%s' % (itemPath, i+1, info))]
+		toRet += [toAdd]
+	return toRet
 
 def getMembers(activeTest=False):
 	lastMember = r.get('%s:members:counter' % orgName)
@@ -56,9 +66,8 @@ def getMembers(activeTest=False):
 def getActiveMembers():
 	return getMembers(activeTest=True)
 
-
-	
 def getTiers():
+	return getGeneric('tiers','%s:tiers' % orgName)
 	totalTiers = r.get('%s:tiers:counter' % orgName)
 	if totalTiers == None:
 		return None
@@ -90,6 +99,11 @@ def getPayments(memberid):
 		toRet += [toAdd]
 	return toRet
 	
+def getComments(memberid):
+	memberid = str(memberid)
+	comments = r.get('%s:members:%s:comments' % (orgName, memberid))
+	return comments
+	
 def printGeneric(name, toPrint):
 	allItems = toPrint
 	if allItems == None:
@@ -115,6 +129,12 @@ def printActiveMembers():
 def printPayments():
 	memberid = raw_input('Payments of what Member ID? > ')
 	printGeneric('payments',getPayments(memberid))
+	
+def printComments():
+	memberid = raw_input('Comments on which Member ID? > ')
+	comments = getComments(memberid)
+	for c in comments:
+		print c
 		
 def numGeneric(itemType):
 	return int(r.get('%s:%s:counter' % (orgName, itemType)))
@@ -141,7 +161,18 @@ def addTier():
 		r.set('%s:tiers:%s:%s' % (orgName, tierID, k), v)
 	r.set('%s:tiers:shortNameToID:%s' % (orgName, details['shortName']), tierID)
 	r.rpush('%s:tiers:shortNameList' % orgName, details['shortName'])
-	print 'Created tier %s' % tierID
+	print 'Created tier with ID %s' % tierID
+	print 'This tier is currently deactive. To activate, please use activateTier'
+	
+def activateTier():
+	idToMod = raw_input('Tier ID to activate > ')
+	r.set('%s:tiers:%s:active' % (orgName, idToMod), 'true')
+	print 'Activated Tier %s: %s' % (idToMod, r.get('%s:tiers:%s:shortName' % (orgName, idToMod)))
+	
+def deactivateTier():
+	idToMod = raw_input('Tier ID to deactivate > ')
+	r.set('%s:tiers:%s:active' % (orgName, idToMod), 'false')
+	print 'Deactivated Tier %s: %s' % (idToMod, r.get('%s:tiers:%s:shortName' % (orgName, idToMod)))
 	
 def modGeneric(itemType):
 	if itemType == 'tiers':
@@ -209,10 +240,13 @@ functionMap = {
 	"printActiveMembers":printActiveMembers,
 	"printTiers":printTiers,
 	"printPayments":printPayments,
+	"printComments":printComments,
 	"help":printHelp,
 	"exit":endProgram,
 	"addTier":addTier,
 	"modTier":modTier,
+	"activateTier":activateTier,
+	"deactivateTier":deactivateTier,
 }
 
 ## MAIN - RUN APP
