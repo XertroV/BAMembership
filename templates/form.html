@@ -1,26 +1,23 @@
 
 	<!--<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>-->
 	<!--<script src="http://127.0.0.1/jquery-1.10.1.min.js"></script>-->
-	
-						<div class="row">
-							<div class="12u">
-							</div>
-						</div>
 	<div id="memberForm" class="row half">
 		<div class="12u">
 			<form role="form" id="membershipForm">
 				<div class="row half">
-					<select>
+					<div class="12u">
+						<select>
+							{% for tier in tiers %}
+								<option value="{{ tier[0] }} | ">{{ tier[1] }} | 
+									{{ (tier[4]|int/24/60/60)|int }} days | 
+									{{ tier[3] }} BTC
+								</option>
+							{% endfor %}
+						</select>
 						{% for tier in tiers %}
-							<option value="{{ tier[0] }} | ">{{ tier[1] }} | 
-								{{ (tier[4]|int/24/60/60)|int }} days | 
-								{{ tier[3] }} BTC
-							</option>
+							{{ tier }}<br>
 						{% endfor %}
-					</select>
-					{% for tier in tiers %}
-						<p>{{ tier }}</p>
-					{% endfor %}
+					</div>
 				</div>
 				<div class="row half">
 					<div class="6u">
