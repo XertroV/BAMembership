@@ -12,13 +12,43 @@ orgName = 'bitcoinAustralia'
 # debug or config vars
 
 printRaw = False
+global printRaw
 
 # first entry in list should be the short human identifier (like a name)
 dbmap = {
 	"tiers":['shortName','description','cost','duration','founding','suggestedSize','active'],
-	"members":['name','active','activeFrom','activeFor','email','founding','paymentAddress'],
+	"members":['name','tier','active','activeFrom','activeFor','email','founding','paymentAddress'],
 	"payments":['description','amount','daterequested','daterecieved','paid'],
 }
+
+## HELPER FUNCTIONS
+
+def loopQuestion(question, validatorFunction):
+	while True:
+		try:
+			ans = validatorFunction(raw_input(question))
+			return ans
+		except:
+			pass
+
+## WALLET FUNCTIONS
+
+def printGeneratedHDPrivKeys():
+	privKeyString = raw_input('Input privkey > ')
+	fromIndex = loopQuestion('From index (starting at 1) > ', int)
+	toIndex = loopQuestion('To index (inclusive) > ', int)
+	print fromIndex, toIndex
+	smaller = min(fromIndex, toIndex)
+	larger = max(fromIndex, toIndex)
+	print smaller, larger
+	genPrivateKeys(privKeyString, [str(i) for i in range(smaller, larger+1)])
+	
+
+def genPrivateKeys(privKey, listOfPaths=[]):
+	privWallet = Wallet.from_wallet_key(privKey)
+	print '%10s | %s | %s' % ('path', 'wif', 'xprv')
+	for path in listOfPaths:
+		print '%10s | %s | %s' % (path, privWallet.subkey_for_path(path).wif(), privWallet.subkey_for_path(path).wallet_key(as_private=True))
 
 ## FUNCITONS - MAP TO COMMANDS
 
@@ -241,6 +271,7 @@ functionMap = {
 	"printTiers":printTiers,
 	"printPayments":printPayments,
 	"printComments":printComments,
+	"printGeneratedHDPrivKeys":printGeneratedHDPrivKeys,
 	"help":printHelp,
 	"exit":endProgram,
 	"addTier":addTier,
@@ -254,14 +285,15 @@ functionMap = {
 def exCommand(command):
 	if command not in functionMap.keys():
 		print 'Error: command nonexistant.'
+		printHelp();
 	else:
 		functionMap[command]()
 	
 
 if __name__ == "__main__":
+	global printRaw
 	if len(sys.argv) > 1:
 		if '-raw' in sys.argv:
-			global printRaw 
 			printRaw = True
 			sys.argv.remove('-raw')
 		command = sys.argv[1]

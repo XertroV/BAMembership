@@ -6,7 +6,9 @@ orgName
 |-members
 ||-counter
 ||-activeMemberList
-||-emailHashToID
+||-emailHashToId
+|||-<hash> -> (members:id)
+||-paymentAddressToId
 |||-<hash> -> (members:id)
 ||-<id>
 |||-active -> (true/false)
@@ -16,8 +18,8 @@ orgName
 |||-email
 |||-founding -> (true/false)
 |||-comments -> (list of comments on accounts)
+|||-tier
 |||-paymentAddress
-|||-paymentCounter
 |||-payments
 ||||-counter
 ||||-<id>

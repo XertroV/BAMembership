@@ -6,16 +6,33 @@
 			<form role="form" id="membershipForm">
 				<div class="row half">
 					<div class="12u">
-						<select>
-							{% for tier in tiers %}
-								<option value="{{ tier[0] }} | ">{{ tier[1] }} | 
+						{% for tier in tiers %}
+							{% if tier[6] == 'true' %}
+							<div class="membershipTier" id="membershipTier{{ tier[0] }}" onclick="selectMembership({{ tier[0] }});">
+								<span>
+									{{ tier[1] }} | 
 									{{ (tier[4]|int/24/60/60)|int }} days | 
 									{{ tier[3] }} BTC
-								</option>
-							{% endfor %}
-						</select>
+								</span>
+								{% if tier[5] != '1' %}
+								<span class="pull-right">
+									up to {{ tier[5] }} employees
+								</span>
+								{% endif %}
+							</div>
+							{% endif %}
+						{% endfor %}
+					</div>
+				</div>
+				<div class="row half">
+					<div class="12u">
 						{% for tier in tiers %}
-							{{ tier }}<br>
+							{% if tier[6] == 'true' %}
+							<div class="membershipDescription" id="membershipDescription{{ tier[0] }}">
+								<h3>{{ tier[1] }}</h3>
+								<p>{{ tier[2] }}</p>
+							</div>
+							{% endif %}
 						{% endfor %}
 					</div>
 				</div>
@@ -80,7 +97,10 @@
 		</div>
 	</div>
 	<script type="text/javascript">
+	var tierSelected = '0';
+		
 	$("#memberSubmit").click(function(){
+		$("html, body").animate({ scrollTop: $('#join').offset().top - 100 }, 500);
 		$("#memberForm").slideUp(200);
 		$("#loadingPayment").slideDown(200);
 		$.ajax({
@@ -107,7 +127,7 @@
 				"memberName":$("#memberName").val(),
 				"memberAddress":$("#memberAddress").val(),
 				"memberAllowed":$("#memberAllowed").is(":checked"),
-				"memberTier":"1",
+				"memberTier":tierSelected,
 			},
 		});
 	});
@@ -119,6 +139,36 @@
 		$("#memberPaymentAddress").slideUp(200);
 		$("#memberForm").slideDown(200);
 	});
+	
+	function hideMembershipDescription(memberid){
+		$("#membershipDescription"+memberid.toString()).slideUp(200);
+	}
+	function showMembershipDescription(memberid){
+		$("#membershipDescription"+memberid.toString()).slideDown(200);
+	}
+	function deselectAllMembership(){
+		for(i=1;i<={{ totalTiers }};i++){
+			elementid = "#membershipTier"+i.toString();
+			if($(elementid).length != 0) {
+				$(elementid).removeClass("membershipTierSelected");
+				hideMembershipDescription(i);
+			}
+		}
+	}
+	function selectMembership(memberid){
+		memberid = memberid.toString()
+		tierSelected = memberid;
+		var elementid = "#membershipTier"+memberid;
+		selectedClass = "membershipTierSelected";
+		if($(elementid).hasClass(selectedClass)){
+			deselectAllMembership();
+			return 0;
+		}
+		deselectAllMembership();
+		$(elementid).addClass("membershipTierSelected");
+		showMembershipDescription(memberid);
+		
+	}
 	
 	loadingAnimCounter = 0;
 	loadingAnimation = function(){

@@ -4,7 +4,10 @@
 
 logfilename = './signupLog.log'
 # replace this string with your own
-pubKey = 'xpub661MyMwAqRbcEw72MGUKw2Yv1bnAg64pad8MhMuFHDUorGBTbCBk2GTRwLjxjbLkDfHFPwtDRrzJAmQdgoU7ZYEjEb3bs2BysnXKCaJa8h7'
+pubKey = 'xpub68BnL7sEYGy26evGwZ1ZSzafjwgdkWZ6WAc3vWR8zXPBpRPkvnC9eUkpqhXuHTcuDQihYgwD5nSWVGFUtuibLdcQrQuRfh3jX5q9L1cMaux'
+
+# this is used in the redis db - must be exact
+orgName = 'bitcoinAustralia'
 
 ## IMPORTS
 
@@ -39,8 +42,6 @@ pubWallet = Wallet.from_wallet_key(pubKey)
 #### DEBUG END ####
 """
 
-# this is used in the redis db
-orgName = 'bitcoinAustralia'
 	
 ## FUNCTIONS
 
@@ -50,7 +51,9 @@ def getAddressFromRoot(index):
 	return address
 	
 def getPaymentAddress(memberid):
-	return getAddressFromRoot('1/'+str(memberid))
+	# considered using the 1/ subpath, but that's redundant and less safe:
+	# payment request maker should only be able to generate addresses for payment, so all must be valid.
+	return getAddressFromRoot(str(int(memberid)))
 	
 def sha256Hash(plaintext):
 	h = SHA256.new()
@@ -65,27 +68,37 @@ class Database:
 		import redis
 		self.r = redis.StrictRedis(host='localhost', port=6379, db=0)
 		self.orgName = orgName
+		
 	def checkEmailExists(self, email):
 		return self.r.exists('%s:members:emailHashToId:%s' % (self.orgName, sha256Hash(email)))
+		
 	def getNewMemberNumber(self): # increment usercounter and get new member number
 		return self.r.incr('%s:members:counter' % self.orgName)
+		
 	def setUserDetails(self,details): # details is a dict of keyvalue pairs to set - keep at arms length from db
 		'''details should be a dict with keys 'resAddress','name','email','id' '''
 		memberid = int(details['id'])
 		resAddress = details['resAddress']
 		name = details['name']
 		email = details['email']
+		tier = details['tier']
 		
-		self.r.set('%s:members:%d:resAddress' % (self.orgName, memberid), resAddress)
-		self.r.set('%s:members:%d:name' % (self.orgName, memberid), name)
-		self.r.set('%s:members:%d:email' % (self.orgName, memberid), email)
-		self.r.set('%s:members:%d:paymentAddress' % (self.orgName, memberid), getPaymentAddress(memberid))
-		self.r.set('%s:members:%d:active' % (self.orgName, memberid), 'false')
+		prefix = '%s:members:%d' % (self.orgName, memberid)
+		paymentAddress = getPaymentAddress(memberid)
+		self.r.set('%s:resAddress' % (prefix,), resAddress)
+		self.r.set('%s:name' % (prefix,), name)
+		self.r.set('%s:email' % (prefix,), email)
+		self.r.set('%s:paymentAddress' % (prefix,), paymentAddress)
+		self.r.set('%s:active' % (prefix,), 'false')
+		self.r.set('%s:tier' % (prefix,), tier)
 		
 		self.r.set('%s:members:emailHashToId:%s' % (self.orgName, sha256Hash(email)), memberid)
+		self.r.set('%s:members:paymentAddressToId:%s' % (self.orgName, paymentAddress), memberid) 
+		
 	def getFee(self, tierID):
 		fee = self.r.get('%s:tiers:%s:cost' % (self.orgName, str(tierID)))
 		return fee
+		
 	def addPaymentRequest(self,memberid,amount,description,date):
 		prefix = '%s:members:%d:payments' % (self.orgName, int(memberid))
 		newPaymentID = self.r.incr('%s:counter' % prefix)
@@ -94,7 +107,12 @@ class Database:
 		self.r.set('%s:description' % prefix, description)
 		self.r.set('%s:daterequested' % prefix, date)
 		self.r.set('%s:paid' % prefix, 'false')
-	def listTiers(self):
+		
+	def addComment(self,memberid,comment):
+		path = '%s:members:%s:comments' % (self.orgName, str(memberid))
+		self.r.rpush(path, comment)
+		
+	def listTiers(self,activeRequired=False):
 		prefix = '%s:tiers' % self.orgName
 		numTiers = self.r.get('%s:counter' % prefix)
 		if numTiers == None:
@@ -102,11 +120,17 @@ class Database:
 		numTiers = int(numTiers)
 		toRet = []
 		for i in range(numTiers):
+			if activeRequired:
+				if self.r.get('%s:%d:active' % (prefix, i+1)) == 'false':
+					continue
 			toAdd = [i+1]
 			for f in ['shortName','description','cost','duration','suggestedSize','active']:
 				toAdd += [self.r.get('%s:%d:%s' % (prefix, i+1, f))]
 			toRet += [toAdd]
 		return toRet
+		
+	def tierShortName(self,tierid):
+		return self.r.get('%s:tier:%d:shortName' % (self.orgName, int(tierid))) 
 
 ## ROUTES (PAGES)
 
@@ -114,7 +138,7 @@ class Database:
 def membership():
 	if request.method == 'GET':
 		tiers = db.listTiers()
-		return render_template('form.html',tiers=tiers)
+		return render_template('form.html',tiers=tiers,totalTiers=len(tiers))
 	elif request.method == 'POST':
 		try:	
 			email = request.form['memberEmail']
@@ -137,7 +161,8 @@ def membership():
 			'id':memberid,
 			'resAddress':resAddress,
 			'name':name,
-			'email':email
+			'email':email,
+			'tier':tier,
 		})
 		address = getPaymentAddress(memberid)
 		amount = db.getFee(tier)
