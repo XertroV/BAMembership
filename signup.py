@@ -141,6 +141,8 @@ def membership():
 		return render_template('form.html',tiers=tiers,totalTiers=len(tiers))
 	elif request.method == 'POST':
 		try:	
+			# TODO - INPUT SHOULD BE SANITIZED SO IT CAN BE DISPLAYED
+			# WITHOUT RISK
 			email = request.form['memberEmail']
 			name = request.form['memberName']
 			resAddress = request.form['memberAddress']
@@ -175,6 +177,8 @@ def membership():
 		
 @app.route("/memberlist")
 def memberlist():
+	# THIS OUTPUT IS NOT SANITIZED - TODO
+	# USER COULD INPUT MALICIOUS DATA
 	maxid = int(db.r.get('bitcoinAustralia:lastmemberid'))
 	ret = ''
 	for i in range(maxid):
