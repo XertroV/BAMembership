@@ -15,7 +15,11 @@
 									{{ (tier[4]|int/24/60/60)|int }} days | 
 									{{ tier[3] }} BTC
 								</span>
-								{% if tier[5]|int > 1 %}
+								{% if '+' in tier[5] %}
+								<span class="pull-right">
+									{{ tier[5] }} employees
+								</span>
+								{% elif tier[5]|int > 1 %}
 								<span class="pull-right">
 									up to {{ tier[5] }} employees
 								</span>
