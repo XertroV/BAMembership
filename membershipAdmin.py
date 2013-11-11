@@ -247,7 +247,7 @@ def modTier():
 	itemType,idToMod,field,newValue = modGeneric('tiers')
 	
 	if field == 'shortName':
-		r.set('%s:tiers:shortNameToID:%s' % (orgName, newValue), tierID)
+		r.set('%s:tiers:shortNameToID:%s' % (orgName, newValue), idToMod)
 		r.rpush('%s:tiers:shortNameList' % orgName, newValue)
 	
 	print 'Custom Done'
