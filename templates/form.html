@@ -3,6 +3,7 @@
 	<!--<script src="http://127.0.0.1/jquery-1.10.1.min.js"></script>-->
 	<div id="memberForm" class="row half">
 		<div class="12u">
+			<h3>Select Membership:</h3>
 			<form role="form" id="membershipForm">
 				<div class="row half">
 					<div class="12u">
@@ -14,7 +15,7 @@
 									{{ (tier[4]|int/24/60/60)|int }} days | 
 									{{ tier[3] }} BTC
 								</span>
-								{% if tier[5] != '1' %}
+								{% if tier[5]|int > 1 %}
 								<span class="pull-right">
 									up to {{ tier[5] }} employees
 								</span>

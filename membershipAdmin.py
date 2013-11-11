@@ -12,7 +12,6 @@ orgName = 'bitcoinAustralia'
 # debug or config vars
 
 printRaw = False
-global printRaw
 
 # first entry in list should be the short human identifier (like a name)
 dbmap = {
@@ -28,6 +27,8 @@ def loopQuestion(question, validatorFunction):
 		try:
 			ans = validatorFunction(raw_input(question))
 			return ans
+		except KeyboardInterrupt:
+			sys.exit()
 		except:
 			pass
 
@@ -37,18 +38,21 @@ def printGeneratedHDPrivKeys():
 	privKeyString = raw_input('Input privkey > ')
 	fromIndex = loopQuestion('From index (starting at 1) > ', int)
 	toIndex = loopQuestion('To index (inclusive) > ', int)
-	print fromIndex, toIndex
 	smaller = min(fromIndex, toIndex)
 	larger = max(fromIndex, toIndex)
-	print smaller, larger
+	
+	if smaller < 0:
+		print 'Error: min index must be greater than or equal to 1'
+		return
+	
 	genPrivateKeys(privKeyString, [str(i) for i in range(smaller, larger+1)])
 	
 
 def genPrivateKeys(privKey, listOfPaths=[]):
 	privWallet = Wallet.from_wallet_key(privKey)
-	print '%10s | %s | %s' % ('path', 'wif', 'xprv')
+	print '%5s | %s | %s' % ('path', 'wif', 'addr')
 	for path in listOfPaths:
-		print '%10s | %s | %s' % (path, privWallet.subkey_for_path(path).wif(), privWallet.subkey_for_path(path).wallet_key(as_private=True))
+		print '%5s | %s | %s' % (path, privWallet.subkey_for_path(path).wif(), privWallet.subkey_for_path(path).bitcoin_address())
 
 ## FUNCITONS - MAP TO COMMANDS
 
@@ -215,7 +219,6 @@ def modGeneric(itemType):
 	nameField = dbmap[itemType][0]
 	for i in range(numGeneric(itemType)):
 		t = r.get('%s:%s:%d:%s' % (orgName, itemType, i+1, nameField))
-		print '%s:%s:%d:%s' % (orgName, itemType, i+1, nameField)
 		print '    %s. %s' % (i+1, t)
 		
 	idToMod = raw_input(' ID To Modify > ')
@@ -260,7 +263,8 @@ def modMember():
 ## HELP AND HELPERS
 
 def printHelp():
-	print """Commands: """
+	print """Use -raw as an argument to not format or truncate output
+	Commands: """
 	for i in functionMap.keys():
 		print '%s,' % i,
 	print ''
@@ -291,7 +295,6 @@ def exCommand(command):
 	
 
 if __name__ == "__main__":
-	global printRaw
 	if len(sys.argv) > 1:
 		if '-raw' in sys.argv:
 			printRaw = True
