@@ -211,9 +211,9 @@ def memberlist():
 				continue
 			if db.r.get('%s:members:%d:listPublicly' % (orgName, memberid)) == 'false':
 				continue
-			ret += '%d | ' % memberid
-			for stuff in ['name']:
-				ret += db.r.get('%s:members:%d:%s' % (orgName, memberid, stuff))
+			if db.r.get('%s:members:%d:banned' % (orgName, memberid) == 'true':
+				continue
+			ret += db.r.get('%s:members:%d:name' % (orgName, memberid))
 			ret += '<br>'
 		else:
 			ret += '%d | ' % memberid

@@ -124,6 +124,9 @@ def getGeneric(itemType,itemPath):
 
 def getMembers(activeTest=False):
 	lastMember = r.get('%s:members:counter' % orgName)
+	if lastMember == None:
+		print 'No members yet.'
+		return
 	lastMember = int(lastMember)
 	toRet = [] 
 	toRet += [['id']+dbmap['members']]
@@ -337,6 +340,9 @@ def registerPayment(memberId=None):
 	paymentId = loopQuestion('Enter ID of payment to register as recieved > ',int)
 	
 	loc = "%s:members:%s:payments:%d:paid" % (orgName, memberId, paymentId)
+	if r.get(loc) == 'true':
+		print 'Already marked as paid. Aborting.'
+		return
 	if not confirmWrite(loc,'true'):
 		print 'Write not confirmed, will not mark payment as paid. End.'
 		return
