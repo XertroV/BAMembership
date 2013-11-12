@@ -1,0 +1,187 @@
+
+	<!--<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>-->
+	<!--<script src="http://127.0.0.1/jquery-1.10.1.min.js"></script>-->
+	<div id="memberForm" class="row half">
+		<div class="12u">
+			<h3>Select Membership:</h3>
+			<form role="form" id="membershipForm">
+				<div class="row half">
+					<div class="12u">
+						{% for tier in tiers %}
+							{% if tier[6] == 'true' %}
+							<div class="membershipTier" id="membershipTier{{ tier[0] }}" onclick="selectMembership({{ tier[0] }});">
+								<span>
+									{{ tier[1] }} | 
+									{{ (tier[4]|int/24/60/60)|int }} days | 
+									{{ tier[3] }} BTC
+								</span>
+								{% if '+' in tier[5] %}
+								<span class="pull-right">
+									{{ tier[5] }} employees
+								</span>
+								{% elif tier[5]|int > 1 %}
+								<span class="pull-right">
+									up to {{ tier[5] }} employees
+								</span>
+								{% endif %}
+							</div>
+							{% endif %}
+						{% endfor %}
+					</div>
+				</div>
+				<div class="row half">
+					<div class="12u">
+						{% for tier in tiers %}
+							{% if tier[6] == 'true' %}
+							<div class="membershipDescription" id="membershipDescription{{ tier[0] }}">
+								<h3>{{ tier[1] }}</h3>
+								<p>{{ tier[2] }}</p>
+							</div>
+							{% endif %}
+						{% endfor %}
+					</div>
+				</div>
+				<div class="row half">
+					<div class="6u">
+						<input type="text" class="form-control" id="memberName" name="memberName" placeholder="Name">
+					</div>
+					<div class="6u">
+						<input type="text" class="form-control" id="memberEmail" name="memberEmail" placeholder="Email">
+					</div>
+				</div>
+				<div class="row half">
+					<div class="12u">
+						<textarea rows="5" maxlength="512" id="memberAddress" name="memberAddress" placeholder="Residential Address"></textarea>
+					</div>
+				</div>
+				<div class="row half">
+					<div class="12u">
+						<label><input type="checkbox" id="memberAllowed" name="memberAllowed"> I am a citizen or permenant resident of Australia, OR, an incorporated or registered legal entitiy according to the relevant Australian state or federal law.</label>
+					</div>
+				</div>
+				<div class="row">
+					<div class="12u">
+						<a class="button" id="memberSubmit">Get Payment Address</a>
+						<a class="button button-alt form-button-reset" onclick="$('#membershipForm')[0].reset();">Clear Form</a>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+	<div class="row half" id="loadingPayment" style="display:none;">
+		<div class="12u">
+			<h3>Loading<span id="loadingAnimation"></span></h3>
+		</div>
+	</div>
+	<div class="row half" id="memberPaymentAddress" style="display:none;">
+		<div class="12u">
+			Please pay <span id="paymentAmount"></span> to:
+			<h3 id="addressToPay"></h3>
+			<a id="bitcoinURI" href=""><img id="bitcoinQR" src="" alt="QR code and bitcoin: link" width="300" height="300"></a><br>
+			Click the QR code for a bitcoin: link!
+			
+			<p>Once you've sent payment there is nothing more you are required to do. Your membership will be manually processed and you will be emailed when it is complete.
+			<br><br>
+			Kind Regards,<br>Bitcoin Australia</p>
+			<!-- THIS IS DEBUG STUFF -->
+			<!-- <div class="row">
+				<div class="12u">
+					<a class="button" id="paymentGoBack">Back</a>
+				</div>
+			</div> -->
+		</div>
+	</div>
+	<div class="row half" id="memberError" style="display:none;">
+		<div class="12u">
+			<h3 class="error">Error: <span id="errorReport"></span></h3>
+			<div class="row">
+				<div class="12u">
+					<a class="button" id="errorGoBack">Back</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<script type="text/javascript">
+	var tierSelected = '0';
+		
+	$("#memberSubmit").click(function(){
+		$("html, body").animate({ scrollTop: $('#join').offset().top - 100 }, 500);
+		$("#memberForm").slideUp(200);
+		$("#loadingPayment").slideDown(200);
+		$.ajax({
+			"success":function(data, z, y){
+				console.log(data);
+				paymentDetails = JSON.parse(data);
+				if(paymentDetails["error"] == "none"){
+					$("#paymentAmount").html(paymentDetails["amount"]);
+					$("#addressToPay").html(paymentDetails["address"]);
+					$("#bitcoinURI").attr("href",paymentDetails["uri"]);
+					$("#bitcoinQR").attr("src","https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl="+encodeURIComponent(paymentDetails["uri"]));
+					$("#loadingPayment").slideUp(200);
+					$("#memberPaymentAddress").slideDown(200);
+				}else{
+					$("#errorReport").html(paymentDetails["error"]);
+					$("#loadingPayment").slideUp(200);
+					$("#memberError").slideDown(200);
+				}
+			},
+			"type":"POST",
+			"url":"/membership",
+			"data":{
+				"memberEmail":$("#memberEmail").val(),
+				"memberName":$("#memberName").val(),
+				"memberAddress":$("#memberAddress").val(),
+				"memberAllowed":$("#memberAllowed").is(":checked"),
+				"memberTier":tierSelected,
+			},
+		});
+	});
+	$("#errorGoBack").click(function(){
+		$("#memberError").slideUp(200);
+		$("#memberForm").slideDown(200);
+	});
+	$("#paymentGoBack").click(function(){
+		$("#memberPaymentAddress").slideUp(200);
+		$("#memberForm").slideDown(200);
+	});
+	
+	function hideMembershipDescription(memberid){
+		$("#membershipDescription"+memberid.toString()).slideUp(200);
+	}
+	function showMembershipDescription(memberid){
+		$("#membershipDescription"+memberid.toString()).slideDown(200);
+	}
+	function deselectAllMembership(){
+		for(i=1;i<={{ totalTiers }};i++){
+			elementid = "#membershipTier"+i.toString();
+			if($(elementid).length != 0) {
+				$(elementid).removeClass("membershipTierSelected");
+				hideMembershipDescription(i);
+			}
+		}
+	}
+	function selectMembership(memberid){
+		memberid = memberid.toString()
+		tierSelected = memberid;
+		var elementid = "#membershipTier"+memberid;
+		selectedClass = "membershipTierSelected";
+		if($(elementid).hasClass(selectedClass)){
+			deselectAllMembership();
+			return 0;
+		}
+		deselectAllMembership();
+		$(elementid).addClass("membershipTierSelected");
+		showMembershipDescription(memberid);
+		
+	}
+	
+	loadingAnimCounter = 0;
+	loadingAnimation = function(){
+		if($("#loadingPayment").is(":visible")){
+			loadingAnimCounter += 1;
+			$("#loadingAnimation").html(["",".","..","..."][loadingAnimCounter % 4]);
+		}
+		setTimeout(loadingAnimation,500);
+	}
+	loadingAnimation();
+	</script>
