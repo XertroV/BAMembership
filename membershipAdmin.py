@@ -86,6 +86,7 @@ def resetMemberCounter():
 	confirmWrite(loc,val)
 	r.set(loc,val)
 	print '%s -> %s SET' % (loc,str(val))
+	print 'Done'
 	
 def getGeneric(itemType,itemPath):
 	lastItem = r.get('%s:counter' % itemPath)
