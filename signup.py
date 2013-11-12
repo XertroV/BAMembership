@@ -155,9 +155,9 @@ def membership():
 		return render_template('form.html',tiers=tiers,totalTiers=len(tiers))
 	elif request.method == 'POST':
 		try:
-			email = escapeHtml(request.form['memberEmail']
-			name = escapeHtml(request.form['memberName']
-			resAddress = escapeHtml(request.form['memberAddress']
+			email = escapeHtml(request.form['memberEmail'])
+			name = escapeHtml(request.form['memberName'])
+			resAddress = escapeHtml(request.form['memberAddress'])
 			allowed = request.form['memberAllowed']
 			tier = int(request.form['memberTier'])
 		except:
