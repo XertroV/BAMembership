@@ -14,7 +14,7 @@ orgName
 |||-active -> (true/false)
 |||-activeFrom -> (time)
 |||-activeFor -> (duration)
-|||-public
+|||-listPublicly
 |||-name
 |||-email
 |||-founding -> (true/false)
@@ -32,7 +32,7 @@ orgName
 |||||-txidlist
 |-tiers
 ||-counter
-||-shortNameToID
+||-shortNameToId
 |||-shortName -> (id)
 ||-shortNameList
 ||-<id>

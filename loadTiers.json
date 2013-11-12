@@ -1,0 +1,56 @@
+{
+	"1":{
+		"shortName":"Individual",
+		"description":"Membership for one individual for 356 days. Member has voting rights.",
+		"cost":"0.546",
+		"duration":"31560000",
+		"founding":"true",
+		"suggestedSize":"1",
+		"active":"true"
+	},
+	"2":{
+		"shortName":"Student",
+		"description":"Membership for one student for 356 days. No voting rights.",
+		"cost":"0.1",
+		"duration":"31560000",
+		"founding":"false",
+		"suggestedSize":"1",
+		"active":"false"
+	},
+	"3":{
+		"shortName":"Industry - Bronze",
+		"description":"Membership recommended for businesses with 2 employees. 356 days in length. Member has voting rights.",
+		"cost":"0.1",
+		"duration":"31560000",
+		"founding":"true",
+		"suggestedSize":"2",
+		"active":"true"
+	},
+	"4":{
+		"shortName":"Industry - Silver",
+		"description":"Membership recommended for businesses with less than 10 employees. 356 days in length. Member has voting rights.",
+		"cost":"0.1",
+		"duration":"31560000",
+		"founding":"true",
+		"suggestedSize":"10",
+		"active":"true"
+	},
+	"5":{
+		"shortName":"Industry - Gold",
+		"description":"Membership recommended for businesses with less than 100 employees. 356 days in length. Member has voting rights.",
+		"cost":"0.1",
+		"duration":"31560000",
+		"founding":"true",
+		"suggestedSize":"100",
+		"active":"true"
+	},
+	"6":{
+		"shortName":"Industry - Platinum",
+		"description":"Membership recommended for businesses with more than 100 employees. 356 days in length. Member has voting rights.",
+		"cost":"0.1",
+		"duration":"31560000",
+		"founding":"true",
+		"suggestedSize":"100+",
+		"active":"true"
+	}
+}

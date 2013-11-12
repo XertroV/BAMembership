@@ -111,16 +111,16 @@ class Database:
 		self.r.set('%s:members:emailHashToId:%s' % (self.orgName, sha256Hash(email)), memberid)
 		self.r.set('%s:members:paymentAddressToId:%s' % (self.orgName, paymentAddress), memberid) 
 		
-	def getFee(self, tierID):
-		fee = self.r.get('%s:tiers:%s:cost' % (self.orgName, str(tierID)))
-		if self.r.get('%s:tiers:%s:active' % (self.orgName, str(tierID))) != 'true':
+	def getFee(self, tierId):
+		fee = self.r.get('%s:tiers:%s:cost' % (self.orgName, str(tierId)))
+		if self.r.get('%s:tiers:%s:active' % (self.orgName, str(tierId))) != 'true':
 			return None
 		return fee
 		
 	def addPaymentRequest(self,memberid,amount,description,date):
 		prefix = '%s:members:%d:payments' % (self.orgName, int(memberid))
-		newPaymentID = self.r.incr('%s:counter' % prefix)
-		prefix += ':%s' % newPaymentID
+		newPaymentId = self.r.incr('%s:counter' % prefix)
+		prefix += ':%s' % newPaymentId
 		self.r.set('%s:amount' % prefix, amount)
 		self.r.set('%s:description' % prefix, description)
 		self.r.set('%s:daterequested' % prefix, date)

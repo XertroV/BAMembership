@@ -31,6 +31,42 @@ def loopQuestion(question, validatorFunction):
 			sys.exit()
 		except:
 			pass
+			
+def paymentAddressToMemberId(addr):
+	'''return (<worked>,<payload>) as <bool>,<string>, like True,id or False,'nonexistant' '''
+	path = '%s:members:paymentAddressToId:%s' % (orgName, addr)
+	if not r.exists(path):
+		return (False,'Nonexistant Address')
+	memberId = r.get(path)
+	return (True,memberId)
+	
+def scrapeKeys(loc,fields,idmax,idmin=1):
+	'''Get all fields from loc:<id>:field - loop over id range, inclusive'''
+	toRet = []
+	for i in range(idmin,idmax+1):
+		toAdd = [i]
+		for field in fields:
+			toAdd += [r.get('%s:%d:%s' % (loc,i,field))]
+		toRet += [toAdd]
+	return toRet
+
+def endProgram():
+	sys.exit()
+	
+def confirmWrite(loc, val):
+	ans = ''
+	while ans != 'y':
+		print 'Warning!'
+		print 'About to set the following:'
+		print '%s -> %s' % (loc, val)
+		ans = raw_input(' Confirm OKAY (press <y>); Ctrl-c or <n> to end > ')
+		if ans == 'n':
+			return False
+	return True
+	
+def acknowledgeWrite(loc, val):
+	print 'Confirmed: %s -> %s' % (loc, val)
+	
 
 ## WALLET FUNCTIONS
 
@@ -56,19 +92,6 @@ def genPrivateKeys(privKey, listOfPaths=[]):
 
 ## FUNCITONS - MAP TO COMMANDS
 
-def endProgram():
-	sys.exit()
-	
-def confirmWrite(loc, val):
-	ans = ''
-	while ans != 'y':
-		print 'Warning!'
-		print 'About to set the following:'
-		print '%s -> %s' % (loc, val)
-		ans = raw_input(' Confirm OKAY (press <y>); Ctrl-c or <n> to end > ')
-		if ans == 'n':
-			return False
-	return True
 	
 def resetMemberCounter():
 	def validator(v):
@@ -76,7 +99,7 @@ def resetMemberCounter():
 	print 'WARNING: ABOUT TO RESET MEMBER COUNTER'
 	print 'ALL DATA MAY BE LOST!'
 	print 'THIS IS PROBABLY NOT WHAT YOU WANT TO DO!'
-	print ''
+	print 'DATA WILL CONFLICT'
 	ans = raw_input('Reset the member counter? (y/n) (Ctrl-c to kill) > ')
 	if ans != 'y':
 		print 'Recieved %s; not \'y\' did not reset counter.' % ans
@@ -104,14 +127,15 @@ def getMembers(activeTest=False):
 	lastMember = int(lastMember)
 	toRet = [] 
 	toRet += [['id']+dbmap['members']]
-	for i in range(lastMember):
-		toAdd = [i+1]
-		active = r.get('%s:members:%d:%s' % (orgName, i+1, 'active'))
+	# custom implementation of scrapeKeys
+	for i in range(1,lastMember+1):
+		toAdd = [i]
+		active = r.get('%s:members:%d:%s' % (orgName, i, 'active'))
 		if activeTest:
 			if active != 'true':
 				continue
-		for info in dbmap['members']:
-			toAdd += [r.get('%s:members:%d:%s' % (orgName, i+1, info))]
+		for field in dbmap['members']:
+			toAdd += [r.get('%s:members:%d:%s' % (orgName, i, field))]
 		toRet += [toAdd]
 	return toRet
 	
@@ -127,33 +151,25 @@ def getTiers():
 	toRet = []
 	fields = dbmap['tiers']
 	toRet += [['id']+fields]
-	for i in range(totalTiers):
-		toAdd = [i+1]
-		for f in fields:
-			toAdd += [r.get('%s:tiers:%d:%s' % (orgName, i+1, f))]
-		toRet += [toAdd]
+	toRet += scrapeKeys('%s:tiers' % orgName, fields, totalTiers)
 	return toRet
 		
 		
-def getPayments(memberid):
-	memberid = str(memberid)
-	totalPayments = r.get('%s:members:%s:payments:counter' % (orgName, memberid))
+def getPayments(memberId):
+	memberId = str(memberId)
+	totalPayments = r.get('%s:members:%s:payments:counter' % (orgName, memberId))
 	if totalPayments == None:
 		return None
 	totalPayments = int(totalPayments)
 	toRet = []
 	fields = dbmap['payments']
 	toRet += [['id']+fields]
-	for i in range(totalPayments):
-		toAdd = [i+1]
-		for f in fields:
-			toAdd += [r.get('%s:members:%s:payments:%d:%s' % (orgName, memberid, i+1, f))]
-		toRet += [toAdd]
+	toRet += scrapeKeys('%s:members:%s:payments' % (orgName, memberId), fields, totalPayments)
 	return toRet
 	
-def getComments(memberid):
-	memberid = str(memberid)
-	comments = r.get('%s:members:%s:comments' % (orgName, memberid))
+def getComments(memberId):
+	memberId = str(memberId)
+	comments = r.get('%s:members:%s:comments' % (orgName, memberId))
 	return comments
 	
 def printGeneric(name, toPrint):
@@ -179,12 +195,12 @@ def printActiveMembers():
 	printMembers(activeTest=True)
 	
 def printPayments():
-	memberid = raw_input('Payments of what Member ID? > ')
-	printGeneric('payments',getPayments(memberid))
+	memberId = raw_input('Payments of what Member ID? > ')
+	printGeneric('payments',getPayments(memberId))
 	
 def printComments():
-	memberid = raw_input('Comments on which Member ID? > ')
-	comments = getComments(memberid)
+	memberId = raw_input('Comments on which Member ID? > ')
+	comments = getComments(memberId)
 	for c in comments:
 		print c
 		
@@ -197,27 +213,35 @@ def numTiers():
 def numMembers():
 	return numGeneric('members')
 	
-def addTier():
+def addTier(shortName=None,description=None,cost=None,duration=None,founding=None,suggestedSize=None,tierId=None):
 	details = {}
-	details['shortName'] = raw_input(' Short Name > ')
-	details['description'] = raw_input(' Description > ')
-	details['cost'] = raw_input(' Cost (in BTC) > ')
-	details['duration'] = raw_input(' Duration (in seconds) > ')
-	details['founding'] = ''
-	while details['founding'] not in ['true','false']:
-		details['founding'] = raw_input(' Is a founding member? (\'true\' or \'false\') > ')
-	details['suggestedSize'] = raw_input(' Suggested Size (for organisations) > ')
+	details['shortName'] = raw_input(' Short Name > ') if shortName == None else shortName
+	details['description'] = raw_input(' Description > ') if description == None else description
+	details['cost'] = raw_input(' Cost (in BTC) > ') if cost == None else cost
+	details['duration'] = raw_input(' Duration (in seconds) > ') if duration == None else duration
 	
-	tierID = r.incr('%s:tiers:counter' % orgName)
+	def getFounding():
+		ans = ''
+		while ans not in ['true','false']:
+			ans = raw_input(' Is a founding member? (\'true\' or \'false\') > ')
+		return ans
+	details['founding'] = getFounding() if founding == None else founding
+	
+	details['suggestedSize'] = raw_input(' Suggested Size (for organisations) > ') if suggestedSize == None else suggestedSize
+	
+	if tierId == None:
+		tierId = r.incr('%s:tiers:counter' % orgName)
+	
 	for k,v in details.iteritems():
-		r.set('%s:tiers:%s:%s' % (orgName, tierID, k), v)
-	r.set('%s:tiers:shortNameToID:%s' % (orgName, details['shortName']), tierID)
+		r.set('%s:tiers:%s:%s' % (orgName, tierId, k), v)
+	r.set('%s:tiers:shortNameToId:%s' % (orgName, details['shortName']), tierId)
 	r.rpush('%s:tiers:shortNameList' % orgName, details['shortName'])
-	print 'Created tier with ID %s' % tierID
+	print 'Created tier with ID %s' % tierId
 	print 'This tier is currently deactive. To activate, please use activateTier'
 	
-def activateTier():
-	idToMod = raw_input('Tier ID to activate > ')
+def activateTier(idToMod=None):
+	if idToMod == None:
+		idToMod = raw_input('Tier ID to activate > ')
 	r.set('%s:tiers:%s:active' % (orgName, idToMod), 'true')
 	print 'Activated Tier %s: %s' % (idToMod, r.get('%s:tiers:%s:shortName' % (orgName, idToMod)))
 	
@@ -238,6 +262,7 @@ def deactivateMember():
 	
 	
 def modGeneric(itemType):
+	itemType = itemType.rsplit(':',1)[-1]
 	if itemType == 'tiers':
 		itemName = 'Tiers'
 	elif itemType == 'members':
@@ -276,7 +301,7 @@ def modTier():
 	itemType,idToMod,field,newValue = modGeneric('tiers')
 	
 	if field == 'shortName':
-		r.set('%s:tiers:shortNameToID:%s' % (orgName, newValue), idToMod)
+		r.set('%s:tiers:shortNameToId:%s' % (orgName, newValue), idToMod)
 		r.rpush('%s:tiers:shortNameList' % orgName, newValue)
 	
 	print 'Custom Done'
@@ -285,9 +310,45 @@ def modMember():
 	itemType,idToMod,field,newValue = modGeneric('members')
 	
 	if field == 'email':
-		r.set('%s:members:emailHashToID:%s' % (orgName, sha256Hash(newValue)), idToMod)
+		r.set('%s:members:emailHashToId:%s' % (orgName, sha256Hash(newValue)), idToMod)
 		
 	print 'Custom Done'
+	
+def modPayment(memberId):
+	itemType,idToMod,field,newValue = modGeneric('members:%s:payments' % memberId)
+	
+	
+def registerPayment(memberId=None):
+	if memberId == None:
+		address = raw_input('Bitcoin address receiving payment > ')
+		reply = paymentAddressToMemberId(address)
+		if reply[1] == True:
+			print 'Fail: %s' % reply[1]
+			return
+		memberId = reply[1]
+	name = r.get('%s:members:%s:name' % (orgName, memberId))
+	print 'Member: %s; %s' % (memberId, name)
+	
+	# get payment amount and use that to find what it's a payment for - one day.
+	# payAmount = loopQuestion('Please enter the payment amount > ',float)
+	possiblePayments = getPayments(memberId)
+	printGeneric('possible payments', possiblePayments)
+	
+	paymentId = loopQuestion('Enter ID of payment to register as recieved > ',int)
+	
+	loc = "%s:members:%s:payments:%d:paid" % (orgName, memberId, paymentId)
+	if not confirmWrite(loc,'true'):
+		print 'Write not confirmed, will not mark payment as paid. End.'
+		return
+	r.set(loc,'true')
+	acknowledgeWrite(loc,'true')
+	
+def paymentToActivateMember():
+	# TODO
+	# Maybe change the name
+	# It will register a payment and activate a member and extend a member all at once.
+	pass
+	
 	
 ## HELP AND HELPERS
 
@@ -313,7 +374,10 @@ functionMap = {
 	"deactivateTier":deactivateTier,
 	"activateMember":activateMember,
 	"deactivateMember":deactivateMember,
+	"modMember":modMember,
 	"resetMemberCounter":resetMemberCounter,
+	"registerPayment":registerPayment,
+	"paymentToActivateMember":paymentToActivateMember,
 }
 
 ## MAIN - RUN APP
@@ -333,7 +397,7 @@ if __name__ == "__main__":
 			sys.argv.remove('-raw')
 		command = sys.argv[1]
 		exCommand(command)
-		sys.exit()
+		endProgram()
 	while True:
 		command = raw_input('$> ')
 		if command not in functionMap.keys():
