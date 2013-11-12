@@ -111,6 +111,8 @@ class Database:
 		
 	def getFee(self, tierID):
 		fee = self.r.get('%s:tiers:%s:cost' % (self.orgName, str(tierID)))
+		if self.r.get('%s:tiers:%s:active' % (self.orgName, str(tierID))) != 'true':
+			return None
 		return fee
 		
 	def addPaymentRequest(self,memberid,amount,description,date):
@@ -170,6 +172,8 @@ def membership():
 			return '{"error":"You must be an Australian Resident or Citizen to join"}'
 		if max([len(resAddress), len(email), len(name)]) > 512:
 			return '{"error":"All fields must be less than 512 characters long."}'
+		if db.getFee(tier) == None:
+			return '{"error":"No Membership Selected."}'
 		memberid = db.getNewMemberNumber()
 		db.setUserDetails({
 			'id':memberid,
