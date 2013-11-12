@@ -60,6 +60,20 @@ def sha256Hash(plaintext):
 	h.update(plaintext)
 	return h.digest()
 	
+def escapeHtml(submittedData):
+	# stackoverflow.com/questions/11548499
+	escapes = {
+		'\"':'&quot;',
+		'\'':'&#39;',
+		'<':'&lt;',
+		'>':'&gt;',
+	}
+	submittedData = submittedData.replace('&','&amp;')
+	for seq, esc in escapes.iteritems():
+		submittedData = submittedData.replace(seq, esc)
+	return submittedData
+	
+	
 ## CLASSES
 
 class Database:
@@ -140,12 +154,10 @@ def membership():
 		tiers = db.listTiers()
 		return render_template('form.html',tiers=tiers,totalTiers=len(tiers))
 	elif request.method == 'POST':
-		try:	
-			# TODO - INPUT SHOULD BE SANITIZED SO IT CAN BE DISPLAYED
-			# WITHOUT RISK
-			email = request.form['memberEmail']
-			name = request.form['memberName']
-			resAddress = request.form['memberAddress']
+		try:
+			email = escapeHtml(request.form['memberEmail']
+			name = escapeHtml(request.form['memberName']
+			resAddress = escapeHtml(request.form['memberAddress']
 			allowed = request.form['memberAllowed']
 			tier = int(request.form['memberTier'])
 		except:
@@ -177,8 +189,6 @@ def membership():
 		
 @app.route("/memberlist")
 def memberlist():
-	# THIS OUTPUT IS NOT SANITIZED - TODO
-	# USER COULD INPUT MALICIOUS DATA
 	maxid = int(db.r.get('bitcoinAustralia:lastmemberid'))
 	ret = ''
 	for i in range(maxid):
