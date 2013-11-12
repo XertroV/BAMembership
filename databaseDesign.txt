@@ -14,6 +14,7 @@ orgName
 |||-active -> (true/false)
 |||-activeFrom -> (time)
 |||-activeFor -> (duration)
+|||-public
 |||-name
 |||-email
 |||-founding -> (true/false)

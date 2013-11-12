@@ -96,6 +96,7 @@ class Database:
 		name = details['name']
 		email = details['email']
 		tier = details['tier']
+		listPublicly = details['listPublicly']
 		
 		prefix = '%s:members:%d' % (self.orgName, memberid)
 		paymentAddress = getPaymentAddress(memberid)
@@ -105,6 +106,7 @@ class Database:
 		self.r.set('%s:paymentAddress' % (prefix,), paymentAddress)
 		self.r.set('%s:active' % (prefix,), 'false')
 		self.r.set('%s:tier' % (prefix,), tier)
+		self.r.set('%s:listPublicly' % (prefix,), listPublicly)
 		
 		self.r.set('%s:members:emailHashToId:%s' % (self.orgName, sha256Hash(email)), memberid)
 		self.r.set('%s:members:paymentAddressToId:%s' % (self.orgName, paymentAddress), memberid) 
@@ -140,7 +142,7 @@ class Database:
 				if self.r.get('%s:%d:active' % (prefix, i+1)) == 'false':
 					continue
 			toAdd = [i+1]
-			for f in ['shortName','description','cost','duration','suggestedSize','active']:
+			for f in ['shortName','description','cost','duration','suggestedSize','active','founding']:
 				toAdd += [self.r.get('%s:%d:%s' % (prefix, i+1, f))]
 			toRet += [toAdd]
 		return toRet
@@ -160,7 +162,8 @@ def membership():
 			email = escapeHtml(request.form['memberEmail'])
 			name = escapeHtml(request.form['memberName'])
 			resAddress = escapeHtml(request.form['memberAddress'])
-			allowed = request.form['memberAllowed']
+			allowed = escapeHtml(request.form['memberAllowed'])
+			dontList = escapeHtml(request.form['memberPublic'])
 			tier = int(request.form['memberTier'])
 		except:
 			return '{"error":"Submitted fields incorrect; general exception"}'
@@ -174,6 +177,8 @@ def membership():
 			return '{"error":"All fields must be less than 512 characters long."}'
 		if db.getFee(tier) == None:
 			return '{"error":"No Membership Selected."}'
+		listPublicly = 'false' if dontList == 'true' else 'true'
+			
 		memberid = db.getNewMemberNumber()
 		db.setUserDetails({
 			'id':memberid,
@@ -181,6 +186,7 @@ def membership():
 			'name':name,
 			'email':email,
 			'tier':tier,
+			'listPublicly':listPublicly,
 		})
 		address = getPaymentAddress(memberid)
 		amount = db.getFee(tier)
@@ -193,12 +199,27 @@ def membership():
 		
 @app.route("/memberlist")
 def memberlist():
-	maxid = int(db.r.get('bitcoinAustralia:lastmemberid'))
+	activeTest = True
+	if 'debug' in request.args and request.args['debug'] == 'true':
+		activeTest = False
+	maxid = int(db.r.get('%s:members:counter' % orgName))
 	ret = ''
 	for i in range(maxid):
-		for stuff in ['name','email','paymentAddress']:
-			ret += db.r.get('bitcoinAustralia:members:%d:%s' % (i+1, stuff)) + ' | '
-		ret += '<br>'
+		memberid = i+1
+		if activeTest:
+			if db.r.get('%s:members:%d:active' % (orgName, memberid)) != 'true':
+				continue
+			if db.r.get('%s:members:%d:listPublicly' % (orgName, memberid)) == 'false':
+				continue
+			ret += '%d | ' % memberid
+			for stuff in ['name']:
+				ret += db.r.get('%s:members:%d:%s' % (orgName, memberid, stuff))
+			ret += '<br>'
+		else:
+			ret += '%d | ' % memberid
+			for stuff in ['name','email','paymentAddress']:
+				ret += db.r.get('%s:members:%d:%s' % (orgName, memberid, stuff)) + ' | '
+			ret += '<br>'
 	return ret	
 
 ## MAIN - RUN APP

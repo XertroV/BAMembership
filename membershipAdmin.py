@@ -70,6 +70,22 @@ def confirmWrite(loc, val):
 			return False
 	return True
 	
+def resetMemberCounter():
+	def validator(v):
+		return v == 'y'
+	print 'WARNING: ABOUT TO RESET MEMBER COUNTER'
+	print 'ALL DATA MAY BE LOST!'
+	print 'THIS IS PROBABLY NOT WHAT YOU WANT TO DO!'
+	print ''
+	ans = raw_input('Reset the member counter? (y/n) (Ctrl-c to kill) > ')
+	if ans != 'y':
+		print 'Recieved %s; not \'y\' did not reset counter.' % ans
+		return
+	loc = '%s:members:counter' % orgName
+	val = 0
+	confirmWrite(loc,val)
+	r.set(loc,val)
+	
 def getGeneric(itemType,itemPath):
 	lastItem = r.get('%s:counter' % itemPath)
 	lastItem = int(lastItem)
@@ -208,6 +224,17 @@ def deactivateTier():
 	r.set('%s:tiers:%s:active' % (orgName, idToMod), 'false')
 	print 'Deactivated Tier %s: %s' % (idToMod, r.get('%s:tiers:%s:shortName' % (orgName, idToMod)))
 	
+def activateMember():
+	idToMod = raw_input('Member ID to activate > ')
+	r.set('%s:members:%s:active' % (orgName, idToMod), 'true')
+	print 'Activated Member %s: %s' % (idToMod, r.get('%s:members:%s:name' % (orgName, idToMod)))
+	
+def deactivateMember():
+	idToMod = raw_input('Member ID to deactivate > ')
+	r.set('%s:members:%s:active' % (orgName, idToMod), 'true')
+	print 'Deactivated Member %s: %s' % (idToMod, r.get('%s:members:%s:name' % (orgName, idToMod)))
+	
+	
 def modGeneric(itemType):
 	if itemType == 'tiers':
 		itemName = 'Tiers'
@@ -282,6 +309,9 @@ functionMap = {
 	"modTier":modTier,
 	"activateTier":activateTier,
 	"deactivateTier":deactivateTier,
+	"activateMember":activateMember,
+	"deactivateMember":deactivateMember,
+	"resetMemberCounter":resetMemberCounter,
 }
 
 ## MAIN - RUN APP
