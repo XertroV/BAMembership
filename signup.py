@@ -2,12 +2,11 @@
 
 ## CONFIG
 
-logfilename = './signupLog.log'
-# replace this string with your own
-pubKey = 'xpub68BnL7sEYGy26evGwZ1ZSzafjwgdkWZ6WAc3vWR8zXPBpRPkvnC9eUkpqhXuHTcuDQihYgwD5nSWVGFUtuibLdcQrQuRfh3jX5q9L1cMaux'
+from config import *
 
-# this is used in the redis db - must be exact
-orgName = 'bitcoinAustralia'
+logfilename = config['logFilename']
+pubKey = config['siteHDPubKey']
+orgName = config['orgName']
 
 ## IMPORTS
 
@@ -211,7 +210,7 @@ def memberlist():
 				continue
 			if db.r.get('%s:members:%d:listPublicly' % (orgName, memberid)) == 'false':
 				continue
-			if db.r.get('%s:members:%d:banned' % (orgName, memberid) == 'true':
+			if db.r.get('%s:members:%d:banned' % (orgName, memberid)) == 'true':
 				continue
 			ret += db.r.get('%s:members:%d:name' % (orgName, memberid))
 			ret += '<br>'

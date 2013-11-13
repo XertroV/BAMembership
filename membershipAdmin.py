@@ -5,11 +5,11 @@ from pycoin.wallet import Wallet
 import redis
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
-#from config import *
+from config import *
 
 # change these
 
-orgName = 'bitcoinAustralia'
+orgName = config['orgName']
 
 # debug or config vars
 
