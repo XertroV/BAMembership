@@ -1,9 +1,11 @@
 #!/usr/bin/python
 
-import sys
+import sys, time
 from pycoin.wallet import Wallet
 import redis
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
+
+#from config import *
 
 # change these
 
@@ -16,7 +18,7 @@ printRaw = False
 # first entry in list should be the short human identifier (like a name)
 dbmap = {
 	"tiers":['shortName','description','cost','duration','founding','suggestedSize','active'],
-	"members":['name','tier','active','activeFrom','activeFor','email','founding','paymentAddress'],
+	"members":['name','tier','active','activeFrom','activeFor','email','founding','paymentAddress','listPublicly'],
 	"payments":['description','amount','daterequested','daterecieved','paid'],
 }
 
@@ -66,6 +68,13 @@ def confirmWrite(loc, val):
 	
 def acknowledgeWrite(loc, val):
 	print 'Confirmed: %s -> %s' % (loc, val)
+	
+def addComment(memberid,comment):
+	path = '%s:members:%s:comments' % (orgName, str(memberid))
+	r.rpush(path, comment)
+	
+def requestMemberId():
+	return loopQuestion('Member ID to activate > ', int)
 	
 
 ## WALLET FUNCTIONS
@@ -175,6 +184,34 @@ def getComments(memberId):
 	comments = r.get('%s:members:%s:comments' % (orgName, memberId))
 	return comments
 	
+def getMemberTier(memberId):
+	memberId = str(memberId)
+	tierId = r.get('%s:members:%s:tier' % (orgName, memberId))
+	return tierId
+	
+def getGenericField(loc, idToGet, field):
+	return r.get('%s:%s:%s' % (loc, str(idToGet), field))
+	
+def getTierField(tierId, field):
+	loc = '%s:tiers' % orgName
+	return getGenericField(loc, tierId, field)
+	
+def getMemberField(memberId, field):
+	loc = '%s:members' % orgName
+	return getGenericField(loc, memberId, field)
+	
+def setGenericField(loc, idToMod, field, value):
+	return r.set('%s:%s:%s' % (loc, str(idToMod), field), value)
+	
+def setTierField(tierId, field, value):
+	loc = '%s:tiers' % orgName
+	return setGenericField(loc, tierId, field, value)
+	
+def setMemberField(memberId, field, value):
+	loc = '%s:members' % orgName
+	return setGenericField(loc, memberId, field, value)
+	
+	
 def printGeneric(name, toPrint):
 	allItems = toPrint
 	if allItems == None:
@@ -254,7 +291,8 @@ def deactivateTier():
 	print 'Deactivated Tier %s: %s' % (idToMod, r.get('%s:tiers:%s:shortName' % (orgName, idToMod)))
 	
 def activateMember():
-	idToMod = raw_input('Member ID to activate > ')
+	print 'WARNING: you should probably be using extendMember'
+	idToMod = requestMemberId()
 	r.set('%s:members:%s:active' % (orgName, idToMod), 'true')
 	print 'Activated Member %s: %s' % (idToMod, r.get('%s:members:%s:name' % (orgName, idToMod)))
 	
@@ -319,16 +357,21 @@ def modMember():
 	
 def modPayment(memberId):
 	itemType,idToMod,field,newValue = modGeneric('members:%s:payments' % memberId)
-	
+
+def requestAddressReturnMemberId():
+	address = raw_input('Bitcoin address receiving payment > ')
+	reply = paymentAddressToMemberId(address)
+	if reply[1] == True:
+		print 'Fail: %s' % reply[1]
+		return None
+	memberId = reply[1]
+	return memberId
 	
 def registerPayment(memberId=None):
 	if memberId == None:
-		address = raw_input('Bitcoin address receiving payment > ')
-		reply = paymentAddressToMemberId(address)
-		if reply[1] == True:
-			print 'Fail: %s' % reply[1]
-			return
-		memberId = reply[1]
+		memberId = requestAddressReturnMemberId()
+	if memberId == None:
+		return None
 	name = r.get('%s:members:%s:name' % (orgName, memberId))
 	print 'Member: %s; %s' % (memberId, name)
 	
@@ -340,20 +383,58 @@ def registerPayment(memberId=None):
 	paymentId = loopQuestion('Enter ID of payment to register as recieved > ',int)
 	
 	loc = "%s:members:%s:payments:%d:paid" % (orgName, memberId, paymentId)
+	print '#'
 	if r.get(loc) == 'true':
 		print 'Already marked as paid. Aborting.'
-		return
+		return None
 	if not confirmWrite(loc,'true'):
 		print 'Write not confirmed, will not mark payment as paid. End.'
-		return
+		return None
 	r.set(loc,'true')
 	acknowledgeWrite(loc,'true')
 	
-def paymentToActivateMember():
+	addComment(memberId,'Marked payment %s as paid.' % paymentId)
+	
+	return paymentId
+	
+def membershipPaymentCycle():
 	# TODO
 	# Maybe change the name
 	# It will register a payment and activate a member and extend a member all at once.
-	pass
+	
+	memberId = requestAddressReturnMemberId()
+	paymentId = registerPayment(memberId)
+	
+	# extend user
+	extendMember(memberId)
+	
+def extendMember(memberId=None):
+	if memberId == None:
+		memberId = requestMemberId()
+	if memberId == None:
+		print 'No memberId, bailing out.'
+		return None
+	tierId = getMemberTier(memberId)
+	duration = getTierField(tierId,'duration')
+	print 'Extending Member %s - %s' % (memberId, getMemberField(memberId, 'name'))
+	# get active, if not active, activate and set activeFrom and activeFor
+	# else, extend activeFor
+	active = getMemberField(memberId,'active')
+	addComment(memberId,'Extending user for %s sec' % duration)
+	if active != 'true':
+		print 'Member not active'
+		print 'Activating and setting activeFrom to now and activeFor'
+		setMemberField(memberId,'active','true')
+		setMemberField(memberId,'activeFrom',int(time.time()))
+		setMemberField(memberId,'activeFor',duration)
+		acknowledgeWrite('active,activeFrom,activeFor','true,now,%s' % duration)
+		print 'Member %s - %s active' % (memberId, getMemberField(memberId, 'name'))
+		return
+	print 'Member already active, incrementing activeFor'
+	activeFor = r.incrby('%s:members:%s:activeFor' % (orgName, memberId), int(duration))
+	acknowledgeWrite('activeFor',activeFor)	
+	print 'Member %s - %s active' % (memberId, getMemberField(memberId, 'name'))
+	return
 	
 	
 ## HELP AND HELPERS
@@ -383,7 +464,8 @@ functionMap = {
 	"modMember":modMember,
 	"resetMemberCounter":resetMemberCounter,
 	"registerPayment":registerPayment,
-	"paymentToActivateMember":paymentToActivateMember,
+	"membershipPaymentCycle":membershipPaymentCycle,
+	"extendMember":extendMember,
 }
 
 ## MAIN - RUN APP
