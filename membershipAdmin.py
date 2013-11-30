@@ -108,10 +108,10 @@ def resetMemberCounter():
 	print 'WARNING: ABOUT TO RESET MEMBER COUNTER'
 	print 'ALL DATA MAY BE LOST!'
 	print 'THIS IS PROBABLY NOT WHAT YOU WANT TO DO!'
-	print 'DATA WILL CONFLICT'
+	print 'DATA WILL BE LOST'
 	ans = raw_input('Reset the member counter? (y/n) (Ctrl-c to kill) > ')
 	if ans != 'y':
-		print 'Recieved %s; not \'y\' did not reset counter.' % ans
+		print 'Recieved %s; not \'y\': did not reset counter.' % ans
 		return
 	loc = '%s:members:counter' % orgName
 	val = 0
@@ -436,6 +436,19 @@ def extendMember(memberId=None):
 	print 'Member %s - %s active' % (memberId, getMemberField(memberId, 'name'))
 	return
 	
+## DB MAINTENANCE
+
+def exportDatabase():
+	# TODO
+	# need to collect members and tiers (and members:payments)
+	# output as binary? maybe specify output file?
+	# as there are possibly unsafe binary sequences in the data (is there?) some will need to be stored as hex (if it's an ascii file)
+	# store everything as hex? it would make it a little difficult to read, and reading would be nice
+	# raw hashes are stored, can't be ascii
+	# they can be reconstructed though
+	# why bother reconstructing?
+	pass
+	
 	
 ## HELP AND HELPERS
 
@@ -466,6 +479,7 @@ functionMap = {
 	"registerPayment":registerPayment,
 	"membershipPaymentCycle":membershipPaymentCycle,
 	"extendMember":extendMember,
+	"exportDatabase":exportDatabase,
 }
 
 ## MAIN - RUN APP

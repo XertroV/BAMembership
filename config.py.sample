@@ -1,0 +1,6 @@
+config = {
+	# this must be exact; used in redis db
+	'orgName':'bitcoinAustralia',
+	'logFilename':'signupLog.log',
+	'siteHDPubKey':'xpub68BnL7sEYGy26evGwZ1ZSzafjwgdkWZ6WAc3vWR8zXPBpRPkvnC9eUkpqhXuHTcuDQihYgwD5nSWVGFUtuibLdcQrQuRfh3jX5q9L1cMaux',
+}
