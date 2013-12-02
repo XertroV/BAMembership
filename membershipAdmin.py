@@ -98,6 +98,10 @@ def genPrivateKeys(privKey, listOfPaths=[]):
 	print '%5s | %s | %s' % ('path', 'wif', 'addr')
 	for path in listOfPaths:
 		print '%5s | %s | %s' % (path, privWallet.subkey_for_path(path).wif(), privWallet.subkey_for_path(path).bitcoin_address())
+		
+def wifPrivKeyToXpub(privKey):
+	privWallet = Wallet.from_master_secret(privKey)
+	return (privWallet.wallet_key(as_private=False), privWallet.wallet_key(as_private=True))
 
 ## FUNCITONS - MAP TO COMMANDS
 
@@ -436,6 +440,10 @@ def extendMember(memberId=None):
 	print 'Member %s - %s active' % (memberId, getMemberField(memberId, 'name'))
 	return
 	
+def printWifPrivKeyToXpub():
+	privkey = loopQuestion('Copypaste WIF privkey> ',str)
+	print wifPrivKeyToXpub(privkey)
+	
 ## DB MAINTENANCE
 
 def exportDatabase():
@@ -466,6 +474,7 @@ functionMap = {
 	"printPayments":printPayments,
 	"printComments":printComments,
 	"printGeneratedHDPrivKeys":printGeneratedHDPrivKeys,
+	"printWifPrivKeyToXpub":printWifPrivKeyToXpub,
 	"help":printHelp,
 	"exit":endProgram,
 	"addTier":addTier,

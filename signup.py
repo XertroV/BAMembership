@@ -7,6 +7,7 @@ from config import *
 logfilename = config['logFilename']
 pubKey = config['siteHDPubKey']
 orgName = config['orgName']
+DEBUG = False
 
 ## IMPORTS
 
@@ -199,7 +200,7 @@ def membership():
 @app.route("/memberlist")
 def memberlist():
 	activeTest = True
-	if 'debug' in request.args and request.args['debug'] == 'true':
+	if DEBUG and 'debug' in request.args and request.args['debug'] == 'true':
 		activeTest = False
 	maxid = int(db.r.get('%s:members:counter' % orgName))
 	ret = ''
